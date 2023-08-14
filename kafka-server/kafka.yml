@@ -27,10 +27,26 @@ spec:
     metadata:
       labels:
         app: kafka-broker
+      annotations:
+          "prometheus.io/scrape": "true"
+          "prometheus.io/port": "19000"
     spec:
+      initContainers:
+      - name: prometheus-jmx-exporter
+        image: spdigital/prometheus-jmx-exporter-kubernetes:0.3.1
+        env:
+        - name: SHARED_VOLUME_PATH
+          value: /shared-volume
+        volumeMounts:
+        - mountPath: /shared-volume
+          name: shared-volume
       hostname: kafka-broker
       containers:
       - env:
+        - name: SHARED_VOLUME_PATH
+          value: /shared-volume
+        - name: KAFKA_OPTS
+          value: -javaagent:/shared-volume/jmx_prometheus_javaagent.jar=19000:/shared-volume/configs/kafka-config.yaml
         - name: KAFKA_BROKER_ID
           value: "1"
         - name: KAFKA_ZOOKEEPER_CONNECT
@@ -44,3 +60,9 @@ spec:
         name: kafka-broker
         ports:
         - containerPort: 9092
+        volumeMounts:
+        - mountPath: /shared-volume
+          name: shared-volume
+      volumes:
+        - name: shared-volume
+          emptyDir: {}
